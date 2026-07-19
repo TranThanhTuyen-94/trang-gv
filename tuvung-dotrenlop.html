@@ -151,6 +151,8 @@
     </div>
 
     <div class="card">
+      <label style="display:block;font-size:13px;color:#555;margin-bottom:6px">Ngày học (áp dụng cho link)</label>
+      <input type="date" id="linkDateInput" style="margin-bottom:12px">
       <button class="btn btn-secondary" onclick="taoLinkDoBai()">🔗 Tạo link dò bài tại nhà</button>
       <div id="linkResultBox" class="hidden" style="margin-top:12px">
         <label>Link — bấm vào ô để copy</label>
@@ -234,6 +236,8 @@ async function apiPost(body){
 // ----- BƯỚC 1: SETUP -----
 async function init(){
   try{
+    document.getElementById('linkDateInput').value = new Date().toISOString().slice(0,10);
+
     const books = await apiGet('getBooks');
     const sel = document.getElementById('bookSelect');
     sel.innerHTML = books.map(b=>`<option value="${b}">${b}</option>`).join('');
@@ -296,18 +300,23 @@ function taoLinkDoBai(){
   const lop = document.getElementById('lopInput').value;
   const book = document.getElementById('bookSelect').value;
   const lessons = Array.from(document.querySelectorAll('#lessonGrid input:checked')).map(i=>i.value);
+  const dateVal = document.getElementById('linkDateInput').value; // yyyy-mm-dd
   if(!lop || !book || lessons.length===0){
     showToast('Chọn Lớp + Sách + ít nhất 1 Bài trước khi tạo link');
     return;
   }
-  const today = new Date().toLocaleDateString('vi-VN');
+  if(!dateVal){ showToast('Chọn ngày học trước khi tạo link'); return; }
+  // Dựng lại Date rồi format bằng đúng cùng 1 cách với chỗ lưu kết quả trên lớp
+  // (toLocaleDateString('vi-VN')) để chuỗi ngày khớp tuyệt đối, tránh lệch định dạng
+  // (vd "5/7/2026" so với "05/07/2026") khiến lọc "đã làm/chưa làm" bị sai.
+  const ngay = new Date(dateVal + 'T00:00:00').toLocaleDateString('vi-VN');
   const url = new URL(location.href);
   url.pathname = url.pathname.replace('tuvung-dotrenlop.html','dobaitainha.html');
   url.search = '';
   url.searchParams.set('lop', lop);
   url.searchParams.set('sach', book);
   url.searchParams.set('bai', lessons.join(', '));
-  url.searchParams.set('ngay', today);
+  url.searchParams.set('ngay', ngay);
   document.getElementById('linkResultBox').classList.remove('hidden');
   document.getElementById('linkResultInput').value = url.toString();
   showToast('Đã tạo link — bấm vào ô để copy');
