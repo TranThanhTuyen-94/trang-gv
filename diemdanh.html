@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Điểm danh</title>
+<style>
+  :root{
+    --bg:#eef4fb; --card:#ffffff; --ink:#1f2a37; --muted:#6b7785;
+    --green:#0f6e56; --green-bg:#e1f5ee;
+    --amber:#c97a16; --amber-bg:#faeeda;
+    --blue:#185fa5; --blue-bg:#e6f1fb;
+    --red:#a32d2d; --red-bg:#fcebeb;
+    --border:#dbe3ec;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:32px 16px;}
+  .wrap{width:100%;max-width:720px;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-primary{background:var(--green);color:#fff;width:100%;}
+  .btn-primary:disabled{background:#9fc9bb;cursor:not-allowed;}
+  .btn-secondary{background:var(--blue-bg);color:var(--blue);margin-top:8px;width:100%;}
+  .hidden{display:none;}
+  .err{color:var(--red);font-size:13px;margin-top:8px;}
+
+  .student-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .student-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .student-name{font-weight:600;font-size:15px;}
+  .student-id{color:var(--muted);font-size:12px;}
+  .seg{display:flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;}
+  .seg button{flex:1;border:none;background:#fff;padding:10px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:600;}
+  .seg button.active.comat{background:var(--green-bg);color:var(--green);}
+  .seg button.active.vang{background:var(--red-bg);color:var(--red);}
+  .flags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .flag-chip{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);font-size:13px;cursor:pointer;background:#fff;color:var(--muted);}
+  .flag-chip.active{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-bg);}
+  .flag-chip.phep.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bg);}
+  .flag-input{width:60px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px;margin-left:4px;display:none;}
+  .flag-input.show{display:inline-block;}
+  .note-area{display:none;margin-top:8px;}
+  .note-area.show{display:block;}
+  .note-area textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:60px;}
+  .note-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px;}
+  .note-btn.has-note{color:var(--amber);font-weight:600;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Điểm danh</h1>
+  <p class="sub">Chọn lớp, tải học viên, điểm danh từng người rồi lưu chung.</p>
+
+  <div class="card">
+    <label>Ngày điểm danh</label>
+    <input type="date" id="ngayInput" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;">
+
+    <label>Lớp</label>
+    <select id="lopInput"><option value="">— Chọn lớp —</option></select>
+    <button class="btn btn-secondary" onclick="loadStudents()">Tải học viên</button>
+    <div id="setupErr" class="err"></div>
+  </div>
+
+  <div id="studentArea"></div>
+
+  <button class="btn btn-primary hidden" id="saveBtn" onclick="saveAttendance()">Lưu điểm danh</button>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRg-u2xvc-6cPFxswzi5kbSNZbCjsWQ3L72dPUWsEoxaExStX_XjGOifyzC8nMGcr9EQ/exec';
+const SECRET_KEY = '99999999';
+
+let roster = [];
+let state = {}; // maHV -> {coMat, coPhep, tre, phutTre, somVe, phutVeSom, ghiChu}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=>t.style.display='none', 2500);
+}
+async function apiGet(action, params){
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(APPS_SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body)});
+  return res.json();
+}
+
+async function init(){
+  const ngayInput = document.getElementById('ngayInput');
+  const today = new Date();
+  ngayInput.value = today.toISOString().slice(0,10);
+  try{
+    const classes = await apiGet('getClasses');
+    document.getElementById('lopInput').innerHTML = '<option value="">— Chọn lớp —</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }catch(e){
+    document.getElementById('setupErr').textContent = 'Không tải được danh sách lớp. Kiểm tra lại APPS_SCRIPT_URL.';
+  }
+}
+
+async function loadStudents(){
+  const lop = document.getElementById('lopInput').value;
+  if(!lop){ showToast('Chọn lớp trước'); return; }
+  document.getElementById('studentArea').innerHTML = '<p class="sub">Đang tải học viên…</p>';
+  roster = await apiGet('getStudents', {lop});
+  if(!Array.isArray(roster) || roster.length===0){
+    document.getElementById('studentArea').innerHTML = '<p class="err">Không tìm thấy học viên "Còn học" trong lớp này.</p>';
+    return;
+  }
+  state = {};
+  roster.forEach(s=>{
+    state[s.maHV] = {coMat:true, coPhep:false, tre:false, phutTre:'', somVe:false, phutVeSom:'', ghiChu:''};
+  });
+  renderStudents(lop);
+  document.getElementById('saveBtn').classList.remove('hidden');
+}
+
+function renderStudents(lop){
+  const area = document.getElementById('studentArea');
+  area.innerHTML = roster.map(s=>{
+    const st = state[s.maHV];
+    return `
+    <div class="student-card" id="card-${s.maHV}">
+      <div class="student-head">
+        <div><div class="student-name">${s.tenHV}</div><div class="student-id">${s.maHV}</div></div>
+      </div>
+      <div class="seg">
+        <button class="comat ${st.coMat?'active':''}" onclick="setCoMat('${s.maHV}',true)">Có mặt</button>
+        <button class="vang ${!st.coMat?'active':''}" onclick="setCoMat('${s.maHV}',false)">Vắng</button>
+      </div>
+      <div class="flags" id="flags-${s.maHV}"></div>
+      <button class="note-btn" id="noteBtn-${s.maHV}" onclick="toggleNote('${s.maHV}')">📝 Ghi chú</button>
+      <div class="note-area" id="noteArea-${s.maHV}">
+        <textarea placeholder="VD: nói chuyện riêng, dùng điện thoại nhiều..." oninput="state['${s.maHV}'].ghiChu=this.value; updateNoteBtn('${s.maHV}')"></textarea>
+      </div>
+    </div>`;
+  }).join('');
+  roster.forEach(s=>renderFlags(s.maHV));
+}
+
+function setCoMat(maHV, val){
+  state[maHV].coMat = val;
+  if(val){ state[maHV].coPhep = false; } // có mặt thì bỏ "có phép" (chỉ áp dụng cho vắng)
+  else { state[maHV].tre=false; state[maHV].phutTre=''; state[maHV].somVe=false; state[maHV].phutVeSom=''; }
+  const card = document.getElementById('card-'+maHV);
+  card.querySelector('.comat').classList.toggle('active', val);
+  card.querySelector('.vang').classList.toggle('active', !val);
+  renderFlags(maHV);
+}
+
+function renderFlags(maHV){
+  const st = state[maHV];
+  const wrap = document.getElementById('flags-'+maHV);
+  let html = '';
+  if(st.coMat){
+    html += `
+      <span class="flag-chip ${st.tre?'active':''}" onclick="toggleFlag('${maHV}','tre')">⏰ Đi trễ<input type="number" min="0" class="flag-input ${st.tre?'show':''}" value="${st.phutTre}" onclick="event.stopPropagation()" oninput="state['${maHV}'].phutTre=this.value" placeholder="phút"> phút</span>
+      <span class="flag-chip ${st.somVe?'active':''}" onclick="toggleFlag('${maHV}','somVe')">🚪 Về sớm<input type="number" min="0" class="flag-input ${st.somVe?'show':''}" value="${st.phutVeSom}" onclick="event.stopPropagation()" oninput="state['${maHV}'].phutVeSom=this.value" placeholder="phút"> phút</span>`;
+  } else {
+    html += `<span class="flag-chip phep ${st.coPhep?'active':''}" onclick="toggleFlag('${maHV}','coPhep')">✓ Có phép</span>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function toggleFlag(maHV, key){
+  state[maHV][key] = !state[maHV][key];
+  renderFlags(maHV);
+}
+
+function toggleNote(maHV){
+  document.getElementById('noteArea-'+maHV).classList.toggle('show');
+}
+function updateNoteBtn(maHV){
+  const btn = document.getElementById('noteBtn-'+maHV);
+  btn.classList.toggle('has-note', !!state[maHV].ghiChu.trim());
+}
+
+async function saveAttendance(){
+  const lop = document.getElementById('lopInput').value;
+  const ngay = document.getElementById('ngayInput').value;
+  if(!ngay){ showToast('Chọn ngày điểm danh trước'); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+  const rows = roster.map(s=>{
+    const st = state[s.maHV];
+    return {
+      ngay: ngay, maHV: s.maHV, tenHV: s.tenHV, lop: lop,
+      coMat: st.coMat ? 'Có mặt' : 'Vắng',
+      coPhep: st.coMat ? '' : (st.coPhep ? 'Có phép' : 'Không phép'),
+      phutTre: st.coMat && st.tre ? st.phutTre : '',
+      phutVeSom: st.coMat && st.somVe ? st.phutVeSom : '',
+      ghiChu: st.ghiChu || ''
+    };
+  });
+  try{
+    const res = await apiPost({key: SECRET_KEY, action:'saveAttendance', rows});
+    if(res.success){
+      btn.textContent = 'Đã lưu ✓';
+      showToast('Đã lưu điểm danh vào hệ thống');
+    } else throw new Error(res.error || 'Lỗi không xác định');
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Lưu điểm danh';
+    showToast('Lỗi khi lưu: ' + e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

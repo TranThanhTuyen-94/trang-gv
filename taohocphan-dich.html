@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tạo học phần — Luyện dịch</title>
+<style>
+  :root{
+    --bg:#eef4fb;
+    --card:#ffffff;
+    --ink:#1f2a37;
+    --muted:#6b7785;
+    --green:#0f6e56;
+    --green-bg:#e1f5ee;
+    --blue:#185fa5;
+    --blue-bg:#e6f1fb;
+    --border:#dbe3ec;
+    --red:#a32d2d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100vh;
+    display:flex;justify-content:center;padding:32px 16px;
+  }
+  .wrap{width:100%;max-width:680px;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;}
+  .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .btn{border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{opacity:.9;}
+  .btn-ghost{background:var(--blue-bg);color:var(--blue);}
+  .btn-danger{background:#fbe3e3;color:var(--red);}
+  .btn-block{width:100%;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  input,textarea{
+    width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+    font-size:14px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  textarea{min-height:120px;resize:vertical;line-height:1.5;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .lesson-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);}
+  .lesson-item:last-child{border-bottom:none;}
+  .li-title{font-weight:600;font-size:14px;}
+  .li-actions{display:flex;gap:8px;}
+  .empty{color:var(--muted);font-size:14px;text-align:center;padding:20px 0;}
+  .msg{font-size:13px;margin-top:10px;}
+  .msg.err{color:var(--red);}
+  .msg.ok{color:var(--green);}
+  .back-link{font-size:13px;color:var(--muted);cursor:pointer;margin-top:14px;text-align:center;}
+  .back-link:hover{color:var(--blue);}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📝 Tạo học phần — Luyện dịch</h1>
+  <div class="sub">Thêm bài đọc + từ đồng nghĩa cho học viên luyện dịch bên web HV.</div>
+
+  <!-- DANH SÁCH BÀI -->
+  <div class="card" id="listCard">
+    <div class="row">
+      <div style="font-weight:600">Danh sách bài đã tạo</div>
+      <button class="btn btn-primary" onclick="showForm()">+ Thêm bài</button>
+    </div>
+    <div id="lessonList"><div class="empty">Đang tải...</div></div>
+  </div>
+
+  <!-- FORM TẠO/SỬA BÀI -->
+  <div class="card" id="formCard" style="display:none">
+    <div style="font-weight:600;margin-bottom:4px" id="formTitle">Bài luyện dịch mới</div>
+
+    <label>Tên bài</label>
+    <input type="text" id="fTen" placeholder="VD: Unit 5 - Daily Routines">
+
+    <label>Văn bản gốc (Enter = xuống hàng, hiển thị đúng như nhập)</label>
+    <textarea id="fVanBan" placeholder="Dán văn bản tiếng Anh vào đây..."></textarea>
+
+    <div class="two-col">
+      <div>
+        <label>Từ đồng nghĩa cần tìm (mỗi từ 1 dòng)</label>
+        <textarea id="fSyn" style="min-height:160px" placeholder="happy&#10;sad&#10;angry"></textarea>
+      </div>
+      <div>
+        <label>Đáp án tương ứng (khớp theo dòng)</label>
+        <textarea id="fAns" style="min-height:160px" placeholder="joyful&#10;unhappy&#10;furious"></textarea>
+      </div>
+    </div>
+    <div class="hint">Có thể để trống 2 ô này nếu bài chỉ luyện dịch, không có phần tìm từ đồng nghĩa.</div>
+
+    <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="saveLesson()">💾 Lưu bài</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px" id="delBtn" onclick="deleteLesson()">🗑 Xóa bài này</button>
+    <div class="msg" id="formMsg"></div>
+    <div class="back-link" onclick="hideForm()">← Hủy, quay lại danh sách</div>
+  </div>
+</div>
+
+<script>
+// Lưu ý: bài dịch nằm trong kho dữ liệu của web HỌC VIÊN, không phải backend GV
+// (quanly-hocvien) — nên trang này gọi thẳng qua đúng Apps Script của web HV.
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDVGTlWSWoAEtAMfv4PAAIZkMLudH_QOiomldb1mx69zR_mk6UAS8AjRTmOfg3wCPiZQ/exec';
+const DEV_PASSWORD = '09730537260353051094';
+
+let lessons = [];
+let editingId = null;
+
+async function apiGet(action, params) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  return (await fetch(url)).json();
+}
+async function apiPost(body) {
+  return (await fetch(APPS_SCRIPT_URL, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ ...body, password: DEV_PASSWORD })
+  })).json();
+}
+
+async function loadLessonList() {
+  lessons = await apiGet('getExercises');
+  const box = document.getElementById('lessonList');
+  if (!lessons || !lessons.length) { box.innerHTML = '<div class="empty">Chưa có bài nào.</div>'; return; }
+  box.innerHTML = lessons.map(l => `
+    <div class="lesson-item">
+      <div class="li-title">${l.ten}</div>
+      <div class="li-actions">
+        <button class="btn btn-ghost" onclick="editLesson('${l.id}')">Sửa</button>
+      </div>
+    </div>`).join('');
+}
+
+function showForm() {
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Bài luyện dịch mới';
+  document.getElementById('delBtn').style.display = 'none';
+  ['fTen', 'fVanBan', 'fSyn', 'fAns'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('formMsg').textContent = '';
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('listCard').style.display = 'none';
+}
+
+async function editLesson(id) {
+  const ex = await apiGet('getExercise', { id });
+  if (ex.error) { alert(ex.error); return; }
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Sửa bài: ' + ex.ten;
+  document.getElementById('delBtn').style.display = 'block';
+  document.getElementById('fTen').value = ex.ten || '';
+  document.getElementById('fVanBan').value = ex.vanBan || '';
+  document.getElementById('fSyn').value = ex.tuDongNghia ? ex.tuDongNghia.split('|').map(s => s.trim()).join('\n') : '';
+  document.getElementById('fAns').value = ex.dapAnDongNghia ? ex.dapAnDongNghia.split('|').map(s => s.trim()).join('\n') : '';
+  document.getElementById('formMsg').textContent = '';
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('listCard').style.display = 'none';
+}
+
+function hideForm() {
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('listCard').style.display = 'block';
+}
+
+async function saveLesson() {
+  const ten = document.getElementById('fTen').value.trim();
+  const vanBan = document.getElementById('fVanBan').value.trim();
+  const msg = document.getElementById('formMsg');
+  if (!ten || !vanBan) { msg.className = 'msg err'; msg.textContent = 'Nhập tên bài và văn bản gốc.'; return; }
+
+  const syns = document.getElementById('fSyn').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const ans  = document.getElementById('fAns').value.split('\n').map(s => s.trim()).filter(Boolean);
+
+  msg.className = 'msg'; msg.textContent = 'Đang lưu...';
+  const res = await apiPost({
+    action: 'saveExercise',
+    data: { id: editingId || '', ten, loai: 'luyen-dich', vanBan, tuDongNghia: syns.join('|'), dapAnDongNghia: ans.join('|') }
+  });
+  if (res.error) { msg.className = 'msg err'; msg.textContent = res.error; return; }
+  msg.className = 'msg ok'; msg.textContent = 'Đã lưu!';
+  if (res.id) editingId = res.id;
+  setTimeout(() => { hideForm(); loadLessonList(); }, 600);
+}
+
+async function deleteLesson() {
+  if (!editingId) return;
+  if (!confirm('Xóa bài này?')) return;
+  const res = await apiPost({ action: 'deleteExercise', id: editingId });
+  if (res.success) { hideForm(); loadLessonList(); }
+}
+
+loadLessonList();
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chấm BTVN</title>
+<style>
+  :root{
+    --bg:#eef4fb; --card:#ffffff; --ink:#1f2a37; --muted:#6b7785;
+    --green:#0f6e56; --green-bg:#e1f5ee;
+    --amber:#c97a16; --amber-bg:#faeeda;
+    --blue:#185fa5; --blue-bg:#e6f1fb;
+    --red:#a32d2d; --red-bg:#fcebeb;
+    --purple:#6a4fb6; --purple-bg:#efe9fb;
+    --border:#dbe3ec;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;justify-content:center;padding:32px 16px;}
+  .wrap{width:100%;max-width:720px;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  select,input[type=date]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;background:#fff;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-primary{background:var(--green);color:#fff;width:100%;}
+  .btn-primary:disabled{background:#9fc9bb;cursor:not-allowed;}
+  .btn-secondary{background:var(--blue-bg);color:var(--blue);margin-top:8px;width:100%;}
+  .err{color:var(--red);font-size:13px;margin-top:8px;}
+
+  .student-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .student-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .student-name{font-weight:600;font-size:15px;}
+  .student-id{color:var(--muted);font-size:12px;}
+  .view-btn{background:var(--purple-bg);color:var(--purple);border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px;}
+  .status-btn{padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);}
+  .status-btn.active.du{background:var(--green-bg);color:var(--green);border-color:var(--green-bg);}
+  .status-btn.active.mot-phan{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-bg);}
+  .status-btn.active.lam-lai{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bg);}
+  .status-btn.active.khong{background:var(--red-bg);color:var(--red);border-color:var(--red-bg);}
+  .pct-row{display:none;align-items:center;gap:8px;margin-bottom:10px;}
+  .pct-row.show{display:flex;}
+  .pct-row input{width:80px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;}
+  .note-area{display:none;margin-top:8px;}
+  .note-area.show{display:block;}
+  .note-area textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:60px;}
+  .note-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:4px;}
+  .note-btn.has-note{color:var(--amber);font-weight:600;}
+  .bu-btn{background:var(--blue-bg);color:var(--blue);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px;}
+  .bu-btn.has-bu{background:var(--green-bg);color:var(--green);}
+  .bu-area{display:none;margin-top:8px;padding:10px;background:var(--bg);border-radius:10px;}
+  .bu-area.show{display:block;}
+  .bu-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;border-bottom:1px solid var(--border);}
+  .bu-item:last-child{border-bottom:none;}
+  .bu-item input{margin:0;}
+
+  /* Modal xem nhanh Google Doc */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,28,38,0.55);z-index:50;align-items:center;justify-content:center;padding:24px;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:#fff;border-radius:16px;width:100%;max-width:860px;height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);gap:10px;}
+  .modal-head h3{margin:0;font-size:15px;flex:1;}
+  .modal-open-btn{background:var(--blue-bg);color:var(--blue);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap;}
+  .modal-close{background:var(--red-bg);color:var(--red);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;}
+  .modal-box iframe{flex:1;border:none;width:100%;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Chấm BTVN</h1>
+  <p class="sub">Bấm "Xem nhanh" để đọc bài trong popup, rồi chọn trạng thái.</p>
+
+  <div class="card">
+    <label>Ngày</label>
+    <input type="date" id="ngayInput">
+    <label>Lớp</label>
+    <select id="lopInput"><option value="">— Chọn lớp —</option></select>
+    <button class="btn btn-secondary" onclick="loadStudents()">Tải học viên</button>
+    <div id="setupErr" class="err"></div>
+  </div>
+
+  <div id="studentArea"></div>
+
+  <button class="btn btn-primary hidden" id="saveBtn" onclick="saveBtvn()" style="display:none">Lưu BTVN</button>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">BTVN</h3>
+      <button class="modal-open-btn" onclick="openInNewTab()">↗ Mở tab mới</button>
+      <button class="modal-close" onclick="closeModal()">✕ Đóng</button>
+    </div>
+    <iframe id="modalFrame" src=""></iframe>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRg-u2xvc-6cPFxswzi5kbSNZbCjsWQ3L72dPUWsEoxaExStX_XjGOifyzC8nMGcr9EQ/exec';
+const SECRET_KEY = '99999999';
+
+let roster = [];
+let absencesMap = {}; // maHV -> [{rowIdx, ngay, coPhep}]
+let state = {}; // maHV -> {trangThai, phanTram, ghiChu}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=>t.style.display='none', 2500);
+}
+async function apiGet(action, params){
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(APPS_SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body)});
+  return res.json();
+}
+
+async function init(){
+  document.getElementById('ngayInput').value = new Date().toISOString().slice(0,10);
+  try{
+    const classes = await apiGet('getClasses');
+    document.getElementById('lopInput').innerHTML = '<option value="">— Chọn lớp —</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }catch(e){
+    document.getElementById('setupErr').textContent = 'Không tải được danh sách lớp.';
+  }
+}
+
+async function loadStudents(){
+  const lop = document.getElementById('lopInput').value;
+  if(!lop){ showToast('Chọn lớp trước'); return; }
+  document.getElementById('studentArea').innerHTML = '<p class="sub">Đang tải học viên…</p>';
+  const [rosterRes, absRes] = await Promise.all([
+    apiGet('getBtvnLinks', {lop}),
+    apiGet('getAbsencesByClass', {lop})
+  ]);
+  roster = rosterRes;
+  absencesMap = absRes || {};
+  if(!Array.isArray(roster) || roster.length===0){
+    document.getElementById('studentArea').innerHTML = '<p class="err">Không tìm thấy học viên có link BTVN trong lớp này.</p>';
+    return;
+  }
+  state = {};
+  roster.forEach(s=>{ state[s.maHV] = {trangThai:'', phanTram:'', ghiChu:''}; });
+  renderStudents();
+  document.getElementById('saveBtn').style.display = 'block';
+}
+
+function renderStudents(){
+  const area = document.getElementById('studentArea');
+  area.innerHTML = roster.map(s=>`
+    <div class="student-card">
+      <div class="student-head">
+        <div><div class="student-name">${s.tenHV}</div><div class="student-id">${s.maHV}</div></div>
+        <button class="view-btn" onclick="openModal('${s.docUrl}','${s.tenHV.replace(/'/g,"\\'")}')">👁 Xem nhanh</button>
+      </div>
+      <div class="status-grid">
+        <button class="status-btn du" onclick="setStatus('${s.maHV}','Làm đủ',this)">✓ Làm đủ</button>
+        <button class="status-btn mot-phan" onclick="setStatus('${s.maHV}','Làm 1 phần',this)">◐ Làm 1 phần</button>
+        <button class="status-btn lam-lai" onclick="setStatus('${s.maHV}','Làm lại',this)">↻ Làm lại</button>
+        <button class="status-btn khong" onclick="setStatus('${s.maHV}','Không làm',this)">✕ Không làm</button>
+      </div>
+      <div class="pct-row" id="pctRow-${s.maHV}">
+        <input type="number" min="0" max="100" placeholder="%" oninput="state['${s.maHV}'].phanTram=this.value">
+        <span class="sub">% bài đã làm</span>
+      </div>
+      ${absencesMap[s.maHV]&&absencesMap[s.maHV].length?`
+      <button class="bu-btn" id="buBtn-${s.maHV}" onclick="toggleBuBai('${s.maHV}')">📋 Bù bài (${absencesMap[s.maHV].length} buổi chưa bù)</button>
+      <div class="bu-area" id="buArea-${s.maHV}">
+        ${absencesMap[s.maHV].map(a=>`<label class="bu-item"><input type="checkbox" value="${a.rowIdx}"> ${a.ngay}${a.coPhep?' (có phép)':' (không phép)'}</label>`).join('')}
+      </div>`:''}
+      <button class="note-btn" id="noteBtn-${s.maHV}" onclick="toggleNote('${s.maHV}')">📝 Ghi chú</button>
+      <div class="note-area" id="noteArea-${s.maHV}">
+        <textarea placeholder="Ghi chú thêm (tùy chọn)..." oninput="state['${s.maHV}'].ghiChu=this.value; updateNoteBtn('${s.maHV}')"></textarea>
+      </div>
+    </div>`).join('');
+}
+
+function setStatus(maHV, status, btn){
+  state[maHV].trangThai = status;
+  const card = btn.closest('.student-card');
+  card.querySelectorAll('.status-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const pctRow = document.getElementById('pctRow-'+maHV);
+  pctRow.classList.toggle('show', status === 'Làm 1 phần');
+  if(status !== 'Làm 1 phần') state[maHV].phanTram = '';
+}
+
+function toggleBuBai(maHV){
+  const area=document.getElementById('buArea-'+maHV);
+  const btn=document.getElementById('buBtn-'+maHV);
+  area.classList.toggle('show');
+  btn.classList.toggle('has-bu',area.classList.contains('show'));
+}
+function toggleNote(maHV){
+  document.getElementById('noteArea-'+maHV).classList.toggle('show');
+}
+function updateNoteBtn(maHV){
+  document.getElementById('noteBtn-'+maHV).classList.toggle('has-note', !!state[maHV].ghiChu.trim());
+}
+
+let currentDocUrl = '';
+function toPreviewUrl(url){
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return `https://docs.google.com/document/d/${m[1]}/preview`;
+  return url;
+}
+function openModal(url, name){
+  if(!url){ showToast('Học viên này chưa có link BTVN'); return; }
+  currentDocUrl = url;
+  document.getElementById('modalTitle').textContent = 'BTVN — ' + name;
+  document.getElementById('modalFrame').src = toPreviewUrl(url);
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.getElementById('modalFrame').src = '';
+  currentDocUrl = '';
+}
+function openInNewTab(){
+  if(currentDocUrl) window.open(currentDocUrl, '_blank');
+}
+
+async function saveBtvn(){
+  const lop = document.getElementById('lopInput').value;
+  const ngay = document.getElementById('ngayInput').value;
+  if(!ngay){ showToast('Chọn ngày trước'); return; }
+  const missing = roster.filter(s=>!state[s.maHV].trangThai);
+  if(missing.length){ showToast(`Còn ${missing.length} học viên chưa chọn trạng thái`); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+  const rows = roster.map(s=>{
+    const st = state[s.maHV];
+    return { ngay, maHV: s.maHV, tenHV: s.tenHV, lop, trangThai: st.trangThai, phanTram: st.phanTram, ghiChu: st.ghiChu };
+  });
+  // Thu thập các buổi bù bài được tick
+  const buRows=[];
+  roster.forEach(s=>{
+    const area=document.getElementById('buArea-'+s.maHV);
+    if(!area) return;
+    area.querySelectorAll('input:checked').forEach(cb=>{
+      buRows.push({rowIdx:parseInt(cb.value)});
+    });
+  });
+  try{
+    const promises=[apiPost({key:SECRET_KEY,action:'saveBtvn',rows})];
+    if(buRows.length) promises.push(apiPost({key:SECRET_KEY,action:'saveBuBai',rows:buRows}));
+    const results=await Promise.all(promises);
+    if(results[0].success){
+      btn.textContent='Đã lưu ✓';
+      showToast(buRows.length?`Đã lưu BTVN + ${buRows.length} buổi bù bài`:'Đã lưu BTVN vào hệ thống');
+    } else throw new Error(results[0].error||'Lỗi');
+  }catch(e){
+    btn.disabled=false; btn.textContent='Lưu BTVN';
+    showToast('Lỗi khi lưu: '+e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dò từ vựng trên lớp</title>
+<style>
+  :root{
+    --bg:#eef4fb;
+    --card:#ffffff;
+    --ink:#1f2a37;
+    --muted:#6b7785;
+    --green:#0f6e56;
+    --green-bg:#e1f5ee;
+    --amber:#c97a16;
+    --amber-bg:#faeeda;
+    --blue:#185fa5;
+    --blue-bg:#e6f1fb;
+    --border:#dbe3ec;
+    --red:#a32d2d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .wrap{width:100%;max-width:640px;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:20px;
+  }
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  select, input[type=text]{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:15px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .lesson-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    margin-top:6px;
+  }
+  .chip{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    cursor:pointer;
+    font-size:14px;
+  }
+  .chip input{margin:0;}
+  .chip.checked{border-color:var(--green);background:var(--green-bg);}
+  .student-list{max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-top:6px;}
+  .student-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:14px;}
+  .student-row:last-child{border-bottom:none;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:none;border-radius:12px;
+    padding:14px 20px;
+    font-size:16px;font-weight:600;
+    cursor:pointer;
+    width:100%;
+  }
+  .btn-primary{background:var(--green);color:#fff;}
+  .btn-primary:disabled{background:#9fc9bb;cursor:not-allowed;}
+  .btn-secondary{background:var(--blue-bg);color:var(--blue);}
+  .hidden{display:none;}
+  .quiz-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:48px 24px;
+    text-align:center;
+  }
+  .progress{font-size:13px;color:var(--muted);margin-bottom:24px;}
+  .word{
+    font-size:52px;
+    font-weight:700;
+    color:var(--green);
+    margin:0 0 8px;
+    word-break:break-word;
+  }
+  .meaning{
+    font-size:18px;
+    color:var(--red);
+    min-height:28px;
+    margin-bottom:32px;
+  }
+  .btn-row{display:flex;gap:12px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;}
+  .btn-hint{background:var(--amber-bg);color:var(--amber);padding:14px 28px;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;}
+  .btn-next{background:var(--blue-bg);color:var(--blue);padding:14px 28px;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;}
+  .student-name{font-size:14px;color:var(--muted);}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;}
+  .pct{font-weight:600;}
+  .pct-high{color:var(--green);}
+  .pct-low{color:var(--red);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;}
+  .err{color:var(--red);font-size:13px;margin-top:8px;}
+  .add-row{display:flex;gap:8px;margin-top:10px;}
+  .add-row select{flex:1;}
+  .add-row button{white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- BƯỚC 1: THIẾT LẬP -->
+  <div id="screenSetup">
+    <h1>Dò từ vựng trên lớp</h1>
+    <p class="sub">Chọn sách, bài và lớp để bắt đầu buổi dò.</p>
+
+    <div class="card">
+      <label>Sách</label>
+      <select id="bookSelect"></select>
+
+      <label>Bài (chọn các bài muốn dò)</label>
+      <button class="btn btn-secondary" style="margin-bottom:8px" onclick="loadLessons()">Tải bài học</button>
+      <div id="lessonGrid" class="lesson-grid"><span class="sub">Bấm "Tải bài học" để xem danh sách bài…</span></div>
+
+      <label>Lớp</label>
+      <select id="lopInput">
+        <option value="">— Chọn lớp —</option>
+      </select>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="loadStudents()">Tải học viên</button>
+
+      <div id="studentArea" class="hidden">
+        <label>Học viên có mặt hôm nay (bỏ tick nếu vắng)</label>
+        <div id="studentList" class="student-list"></div>
+      </div>
+
+      <div id="setupErr" class="err"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-secondary" onclick="taoLinkDoBai()">🔗 Tạo link dò bài tại nhà</button>
+      <div id="linkResultBox" class="hidden" style="margin-top:12px">
+        <label>Link — bấm vào ô để copy</label>
+        <input type="text" id="linkResultInput" readonly onclick="this.select();document.execCommand('copy');showToast('Đã copy link')">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="startBtn" onclick="startQuiz()" disabled>Bắt đầu dò bài</button>
+  </div>
+
+  <!-- BƯỚC 2: DÒ BÀI -->
+  <div id="screenQuiz" class="hidden">
+    <div class="quiz-card">
+      <div class="progress" id="progressText"></div>
+      <div class="word" id="wordText"></div>
+      <div class="meaning" id="meaningText"></div>
+      <div class="btn-row">
+        <button class="btn-hint" onclick="onHint()">💡 Hint</button>
+        <button class="btn-next" onclick="onNext()">✓ Next</button>
+      </div>
+      <div class="student-name" id="studentNameText"></div>
+    </div>
+    <div class="add-row" style="margin-top:16px">
+      <select id="lateStudentSelect"></select>
+      <button class="btn btn-secondary" style="width:auto" onclick="addLateStudent()">+ Thêm học viên trễ</button>
+    </div>
+  </div>
+
+  <!-- BƯỚC 3: KẾT QUẢ -->
+  <div id="screenResult" class="hidden">
+    <h1>Kết quả buổi dò</h1>
+    <p class="sub" id="resultSub"></p>
+    <div class="card">
+      <table>
+        <thead><tr><th>Học viên</th><th>Đúng/Tổng</th><th>%</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-primary" id="saveBtn" onclick="saveToSheet()">Lưu vào hệ thống</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ====== CẤU HÌNH ======
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRg-u2xvc-6cPFxswzi5kbSNZbCjsWQ3L72dPUWsEoxaExStX_XjGOifyzC8nMGcr9EQ/exec';
+const SECRET_KEY = '99999999';
+
+let allRoster = [];       // toàn bộ học viên "còn học" của lớp
+let presentRoster = [];   // học viên có mặt được chọn dò (giữ nguyên thứ tự trong sheet)
+let wordPool = [];        // {word, meaning, lesson} — giữ nguyên thứ tự trong sheet
+let queue = [];           // hàng đợi {student, word}
+let queueIdx = 0;
+let wordCursor = 0;       // con trỏ chạy tuần hoàn qua wordPool, không random
+let stats = {};           // maHV -> {tenHV, asked, correct, wrongWords:[]}
+let currentBook = '', currentLessons = [], currentLop = '';
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=>t.style.display='none', 2500);
+}
+
+async function apiGet(action, params){
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(body){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ----- BƯỚC 1: SETUP -----
+async function init(){
+  try{
+    const books = await apiGet('getBooks');
+    const sel = document.getElementById('bookSelect');
+    sel.innerHTML = books.map(b=>`<option value="${b}">${b}</option>`).join('');
+
+    const classes = await apiGet('getClasses');
+    const lopSel = document.getElementById('lopInput');
+    lopSel.innerHTML = '<option value="">— Chọn lớp —</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }catch(e){
+    document.getElementById('setupErr').textContent = 'Không tải được danh sách sách/lớp. Kiểm tra lại APPS_SCRIPT_URL.';
+  }
+}
+
+async function loadLessons(){
+  const grid = document.getElementById('lessonGrid');
+  grid.innerHTML = '<span class="sub">Đang tải bài học…</span>';
+  const book = document.getElementById('bookSelect').value;
+  const lessons = await apiGet('getLessons', {book});
+  grid.innerHTML = lessons.map(l=>`
+    <label class="chip" data-lesson="${l}">
+      <input type="checkbox" value="${l}" onchange="onLessonToggle(this)">
+      ${l}
+    </label>`).join('');
+}
+function onLessonToggle(cb){
+  cb.closest('.chip').classList.toggle('checked', cb.checked);
+  checkReady();
+}
+
+async function loadStudents(){
+  const lop = document.getElementById('lopInput').value;
+  if(!lop){ showToast('Chọn lớp trước'); return; }
+  currentLop = lop;
+  document.getElementById('studentArea').classList.remove('hidden');
+  document.getElementById('studentList').innerHTML = '<div class="student-row sub">Đang tải học viên…</div>';
+  allRoster = await apiGet('getStudents', {lop});
+  if(!Array.isArray(allRoster) || allRoster.length===0){
+    document.getElementById('setupErr').textContent = 'Không tìm thấy học viên "Còn học" trong lớp này.';
+    return;
+  }
+  document.getElementById('setupErr').textContent = '';
+  document.getElementById('studentArea').classList.remove('hidden');
+  document.getElementById('studentList').innerHTML = allRoster.map(s=>`
+    <label class="student-row">
+      <input type="checkbox" checked value="${s.maHV}" onchange="checkReady()">
+      ${s.tenHV} <span class="sub" style="margin-left:auto">${s.maHV}</span>
+    </label>`).join('');
+  checkReady();
+}
+
+function checkReady(){
+  const lessonsChecked = document.querySelectorAll('#lessonGrid input:checked').length;
+  const studentsChecked = document.querySelectorAll('#studentList input:checked').length;
+  document.getElementById('startBtn').disabled = !(lessonsChecked>0 && studentsChecked>0);
+}
+
+// ----- TẠO LINK DÒ BÀI TẠI NHÀ -----
+// Không cần Sheet mới: nhúng thẳng lop/sach/bai/ngay vào URL. Trang dobaitainha.html
+// sẽ tự lọc học viên nào đã có kết quả hôm đó (đọc động từ File lịch sử dò từ vựng).
+function taoLinkDoBai(){
+  const lop = document.getElementById('lopInput').value;
+  const book = document.getElementById('bookSelect').value;
+  const lessons = Array.from(document.querySelectorAll('#lessonGrid input:checked')).map(i=>i.value);
+  if(!lop || !book || lessons.length===0){
+    showToast('Chọn Lớp + Sách + ít nhất 1 Bài trước khi tạo link');
+    return;
+  }
+  const today = new Date().toLocaleDateString('vi-VN');
+  const url = new URL(location.href);
+  url.pathname = url.pathname.replace('tuvung-dotrenlop.html','dobaitainha.html');
+  url.search = '';
+  url.searchParams.set('lop', lop);
+  url.searchParams.set('sach', book);
+  url.searchParams.set('bai', lessons.join(', '));
+  url.searchParams.set('ngay', today);
+  document.getElementById('linkResultBox').classList.remove('hidden');
+  document.getElementById('linkResultInput').value = url.toString();
+  showToast('Đã tạo link — bấm vào ô để copy');
+}
+
+// ----- BƯỚC 2: TẠO HÀNG ĐỢI & CHẠY QUIZ -----
+async function startQuiz(){
+  currentBook = document.getElementById('bookSelect').value;
+  currentLessons = Array.from(document.querySelectorAll('#lessonGrid input:checked')).map(i=>i.value);
+  const presentIds = Array.from(document.querySelectorAll('#studentList input:checked')).map(i=>i.value);
+  presentRoster = allRoster.filter(s=>presentIds.includes(s.maHV));
+
+  wordPool = await apiGet('getWords', {book: currentBook, lessons: currentLessons.join(',')});
+  if(!Array.isArray(wordPool) || wordPool.length===0){
+    showToast('Không tải được từ vựng'); return;
+  }
+
+  // quota = số từ mỗi HV được dò. Dùng ceil (làm tròn LÊN) để đảm bảo dùng hết
+  // toàn bộ wordPool ít nhất 1 lượt — dư ra bao nhiêu thì lặp lại đúng từ đầu
+  // danh sách bấy nhiêu (vd 80 từ / 30 người -> quota 3 -> lặp lại 10 từ đầu).
+  const quota = Math.max(1, Math.ceil(wordPool.length / presentRoster.length));
+  stats = {};
+  presentRoster.forEach(s=>{
+    stats[s.maHV] = {tenHV:s.tenHV, quota, asked:0, correct:0, wrongWords:[]};
+  });
+
+  wordCursor = 0;
+  queue = [];
+  buildQueue();
+  queueIdx = 0;
+  document.getElementById('screenSetup').classList.add('hidden');
+  document.getElementById('screenQuiz').classList.remove('hidden');
+  fillLateStudentSelect();
+  renderCurrent();
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// Tuần hoàn cố định: học viên theo đúng thứ tự trong sheet (không random),
+// từ vựng theo đúng thứ tự trong sheet, chạy tuần hoàn qua wordCursor
+// (hết danh sách thì quay lại từ đầu, không random chọn lại).
+function buildQueue(){
+  const maxQuota = Math.max(...Object.values(stats).map(s=>s.quota));
+  for(let round=0; round<maxQuota; round++){
+    presentRoster.forEach(s=>{
+      if(round >= stats[s.maHV].quota) return;
+      const w = wordPool[wordCursor % wordPool.length];
+      wordCursor++;
+      queue.push({maHV:s.maHV, word:w});
+    });
+  }
+}
+
+function renderCurrent(){
+  if(queueIdx >= queue.length){ finishQuiz(); return; }
+  const item = queue[queueIdx];
+  const s = stats[item.maHV];
+  document.getElementById('wordText').textContent = item.word.word;
+  document.getElementById('meaningText').textContent = '';
+  document.getElementById('studentNameText').textContent = s.tenHV;
+  document.getElementById('progressText').textContent = `Câu ${queueIdx+1}/${queue.length}`;
+}
+
+function onNext(){
+  const item = queue[queueIdx];
+  const s = stats[item.maHV];
+  s.asked++; s.correct++;
+  queueIdx++;
+  renderCurrent();
+}
+function onHint(){
+  const item = queue[queueIdx];
+  const s = stats[item.maHV];
+  document.getElementById('meaningText').textContent = item.word.meaning;
+  s.asked++;
+  s.wrongWords.push(item.word.word);
+  setTimeout(()=>{ queueIdx++; renderCurrent(); }, 1200);
+}
+
+function fillLateStudentSelect(){
+  const presentIds = Object.keys(stats);
+  const notYet = allRoster.filter(s=>!presentIds.includes(s.maHV));
+  const sel = document.getElementById('lateStudentSelect');
+  sel.innerHTML = notYet.length
+    ? notYet.map(s=>`<option value="${s.maHV}">${s.tenHV}</option>`).join('')
+    : `<option value="">Không còn học viên nào</option>`;
+}
+
+function addLateStudent(){
+  const maHV = document.getElementById('lateStudentSelect').value;
+  if(!maHV) return;
+  const s = allRoster.find(x=>x.maHV===maHV);
+  const maxQuota = Math.max(...Object.values(stats).map(x=>x.quota));
+  stats[maHV] = {tenHV:s.tenHV, quota:maxQuota, asked:0, correct:0, wrongWords:[]};
+  // Gán từ tiếp nối đúng từ chỗ wordCursor đang dừng — không random, không lặp lại
+  // những từ vừa mới hỏi xong ở lượt trước.
+  for(let i=0;i<maxQuota;i++){
+    const w = wordPool[wordCursor % wordPool.length];
+    wordCursor++;
+    queue.push({maHV, word:w});
+  }
+  fillLateStudentSelect();
+  showToast(`Đã thêm ${s.tenHV} (${maxQuota} từ)`);
+  renderCurrent();
+}
+
+// ----- BƯỚC 3: TỔNG KẾT -----
+function finishQuiz(){
+  document.getElementById('screenQuiz').classList.add('hidden');
+  document.getElementById('screenResult').classList.remove('hidden');
+  document.getElementById('resultSub').textContent = `${currentLop} · ${currentBook} · ${currentLessons.join(', ')}`;
+  const rows = Object.entries(stats).map(([maHV,s])=>{
+    const pct = s.asked ? Math.round((s.correct/s.asked)*100) : 0;
+    const cls = pct>=70 ? 'pct-high' : 'pct-low';
+    return `<tr><td>${s.tenHV}</td><td>${s.correct}/${s.asked}</td><td class="pct ${cls}">${pct}%</td></tr>`;
+  }).join('');
+  document.getElementById('resultBody').innerHTML = rows;
+}
+
+async function saveToSheet(){
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+  const today = new Date().toLocaleDateString('vi-VN');
+  const rows = Object.entries(stats).map(([maHV,s])=>{
+    const pct = s.asked ? Math.round((s.correct/s.asked)*100) : 0;
+    return {
+      ngay: today, maHV, tenHV: s.tenHV, lop: currentLop,
+      sach: currentBook, baiDaChon: currentLessons.join(', '),
+      tongSoTu: s.asked, soTuThuoc: s.correct, phanTram: pct + '%',
+      tuVungSai: s.wrongWords.join(', ')
+    };
+  });
+  try{
+    const res = await apiPost({key: SECRET_KEY, action:'saveResult', rows});
+    if(res.success){
+      btn.textContent = 'Đã lưu ✓';
+      showToast('Đã lưu kết quả vào hệ thống');
+    }else{
+      throw new Error(res.error || 'Lỗi không xác định');
+    }
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Lưu vào hệ thống';
+    showToast('Lỗi khi lưu: ' + e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

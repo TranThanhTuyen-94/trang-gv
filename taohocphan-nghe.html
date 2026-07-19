@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tạo học phần — Luyện nghe</title>
+<style>
+  :root{
+    --bg:#eef4fb;
+    --card:#ffffff;
+    --ink:#1f2a37;
+    --muted:#6b7785;
+    --green:#0f6e56;
+    --green-bg:#e1f5ee;
+    --amber:#c97a16;
+    --amber-bg:#faeeda;
+    --blue:#185fa5;
+    --blue-bg:#e6f1fb;
+    --border:#dbe3ec;
+    --red:#a32d2d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .wrap{width:100%;max-width:640px;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:20px;
+  }
+  .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .btn{
+    border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:inherit;
+  }
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{opacity:.9;}
+  .btn-ghost{background:var(--blue-bg);color:var(--blue);}
+  .btn-danger{background:#fbe3e3;color:var(--red);}
+  .btn-block{width:100%;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  input,select,textarea{
+    width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+    font-size:14px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  textarea{min-height:140px;resize:vertical;line-height:1.5;}
+  .lesson-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 0;border-bottom:1px solid var(--border);
+  }
+  .lesson-item:last-child{border-bottom:none;}
+  .li-title{font-weight:600;font-size:14px;}
+  .li-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .empty{color:var(--muted);font-size:14px;text-align:center;padding:20px 0;}
+  .player-box{
+    background:var(--blue-bg);border-radius:12px;padding:16px;margin-top:12px;
+  }
+  audio{width:100%;margin-bottom:12px;}
+  .mark-row{display:flex;gap:8px;margin-bottom:12px;}
+  .marks{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .mark-chip{
+    background:var(--green-bg);color:var(--green);font-size:12px;font-weight:600;
+    padding:5px 10px;border-radius:999px;
+  }
+  .marks-empty{font-size:12px;color:var(--muted);}
+  .msg{font-size:13px;margin-top:10px;}
+  .msg.err{color:var(--red);}
+  .msg.ok{color:var(--green);}
+  .back-link{font-size:13px;color:var(--muted);cursor:pointer;margin-top:14px;text-align:center;}
+  .back-link:hover{color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎧 Tạo học phần — Luyện nghe</h1>
+  <div class="sub">Dán script, chọn audio đã up Drive, tự đánh mốc ngắt 7-8 từ để học viên shadowing.</div>
+
+  <!-- DANH SÁCH BÀI ĐÃ TẠO -->
+  <div class="card" id="listCard">
+    <div class="row">
+      <div style="font-weight:600">Danh sách bài đã tạo</div>
+      <button class="btn btn-primary" onclick="showForm()">+ Thêm bài</button>
+    </div>
+    <div id="lessonList"><div class="empty">Đang tải...</div></div>
+  </div>
+
+  <!-- FORM TẠO BÀI -->
+  <div class="card" id="formCard" style="display:none">
+    <div style="font-weight:600;margin-bottom:4px">Bài luyện nghe mới</div>
+
+    <label>Tên bài</label>
+    <input type="text" id="fTen" placeholder="VD: Shadowing bài 1 - Part 3">
+
+    <label>Script</label>
+    <textarea id="fScript" placeholder="Dán toàn bộ script tại đây..."></textarea>
+
+    <label>Chọn file audio (đã up Drive)</label>
+    <select id="fAudio" onchange="onAudioSelect()"><option value="">-- Chọn audio --</option></select>
+
+    <div class="player-box" id="playerBox" style="display:none">
+      <audio id="player" controls></audio>
+      <div class="mark-row">
+        <button class="btn btn-ghost" onclick="playAudio()">▶️ Play</button>
+        <button class="btn btn-ghost" onclick="pauseAudio()">⏸️ Pause</button>
+        <button class="btn btn-primary" style="flex:1" onclick="markCut()">✂️ Chọn ngắt</button>
+      </div>
+      <div class="mark-row">
+        <button class="btn btn-ghost btn-block" onclick="undoMark()">↩️ Hồi lại đoạn vừa rồi</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Mốc đã đánh (giây):</div>
+      <div class="marks" id="marksList"><span class="marks-empty">Chưa có mốc nào</span></div>
+    </div>
+
+    <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="saveLesson()">Tạo bài</button>
+    <div class="msg" id="formMsg"></div>
+    <div class="back-link" onclick="hideForm()">← Hủy, quay lại danh sách</div>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRg-u2xvc-6cPFxswzi5kbSNZbCjsWQ3L72dPUWsEoxaExStX_XjGOifyzC8nMGcr9EQ/exec';
+const SECRET_KEY = '99999999';
+const DRIVE_API_KEY = 'AIzaSyBexzF_QAD0bbe-rnoCVCzpWd6I9xeurO0';
+
+let audioFiles = [];
+let marks = [];
+
+async function apiGet(action, params) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  return (await fetch(url)).json();
+}
+async function apiPost(body) {
+  return (await fetch(APPS_SCRIPT_URL, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ ...body, key: SECRET_KEY })
+  })).json();
+}
+
+async function init() {
+  loadAudioFiles();
+  loadLessonList();
+}
+
+async function loadAudioFiles() {
+  audioFiles = await apiGet('getAudioFiles');
+  const sel = document.getElementById('fAudio');
+  (audioFiles || []).forEach(f => sel.insertAdjacentHTML('beforeend', `<option value="${f.id}">${f.ten}</option>`));
+}
+
+async function loadLessonList() {
+  const list = await apiGet('getLuyenNgheList');
+  const box = document.getElementById('lessonList');
+  if (!list || !list.length) { box.innerHTML = '<div class="empty">Chưa có bài nào.</div>'; return; }
+  box.innerHTML = list.map(l => `
+    <div class="lesson-item">
+      <div>
+        <div class="li-title">${l.ten}</div>
+        <div class="li-meta">${l.mocNgat.length} đoạn</div>
+      </div>
+      <button class="btn btn-danger" onclick="deleteLesson(${l.rowIdx})">Xóa</button>
+    </div>`).join('');
+}
+
+async function deleteLesson(rowIdx) {
+  if (!confirm('Xóa bài này?')) return;
+  await apiPost({ action: 'deleteLuyenNghe', rowIdx });
+  loadLessonList();
+}
+
+function showForm() {
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('listCard').style.display = 'none';
+}
+function hideForm() {
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('listCard').style.display = 'block';
+  document.getElementById('fTen').value = '';
+  document.getElementById('fScript').value = '';
+  document.getElementById('fAudio').value = '';
+  document.getElementById('playerBox').style.display = 'none';
+  document.getElementById('formMsg').textContent = '';
+  marks = [];
+  renderMarks();
+}
+
+function onAudioSelect() {
+  const id = document.getElementById('fAudio').value;
+  const player = document.getElementById('player');
+  marks = []; renderMarks();
+  if (!id) { document.getElementById('playerBox').style.display = 'none'; return; }
+  player.src = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${DRIVE_API_KEY}`;
+  document.getElementById('playerBox').style.display = 'block';
+}
+
+function playAudio()  { document.getElementById('player').play(); }
+function pauseAudio() { document.getElementById('player').pause(); }
+
+function markCut() {
+  const t = document.getElementById('player').currentTime;
+  if (!t) return;
+  marks.push(Math.round(t * 10) / 10);
+  marks.sort((a, b) => a - b);
+  renderMarks();
+}
+function undoMark() {
+  marks.pop();
+  renderMarks();
+}
+function renderMarks() {
+  const box = document.getElementById('marksList');
+  if (!marks.length) { box.innerHTML = '<span class="marks-empty">Chưa có mốc nào</span>'; return; }
+  box.innerHTML = marks.map(m => `<span class="mark-chip">${fmtTime(m)}</span>`).join('');
+}
+function fmtTime(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+async function saveLesson() {
+  const ten = document.getElementById('fTen').value.trim();
+  const script = document.getElementById('fScript').value.trim();
+  const audioId = document.getElementById('fAudio').value;
+  const msg = document.getElementById('formMsg');
+  msg.className = 'msg err';
+
+  if (!ten || !script || !audioId) { msg.textContent = 'Điền đủ Tên bài, Script, và chọn Audio.'; return; }
+  if (marks.length < 1) { msg.textContent = 'Chưa đánh mốc ngắt nào — nghe và bấm "Chọn ngắt" ít nhất 1 lần.'; return; }
+
+  const audioFile = audioFiles.find(f => f.id === audioId);
+  msg.textContent = 'Đang lưu...'; msg.className = 'msg';
+
+  const res = await apiPost({
+    action: 'saveLuyenNghe', ten, script,
+    audioFileId: audioId, audioFileTen: audioFile ? audioFile.ten : '',
+    mocNgat: marks
+  });
+  if (res.error) { msg.className = 'msg err'; msg.textContent = res.error; return; }
+  msg.className = 'msg ok'; msg.textContent = 'Đã lưu bài thành công!';
+  setTimeout(() => { hideForm(); loadLessonList(); }, 700);
+}
+
+init();
+</script>
+</body>
+</html>

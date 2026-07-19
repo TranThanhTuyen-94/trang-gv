@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý lớp học</title>
+<style>
+:root{
+  --bg:#ffffff;
+  --card:#ffffff;
+  --ink:#1a1a1a;
+  --muted:#767676;
+  --border:#e8e8e8;
+  --blue:#1428A0;
+  --blue-bg:#f0f2ff;
+  --green:#2eb872;
+  --amber:#f5a623;
+  --red:#eb4d4d;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;background:var(--bg);overflow:hidden;height:100vh;color:var(--ink);}
+
+/* TOP BAR */
+.top-bar{
+  height:56px;background:#fff;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;
+  position:fixed;top:0;left:0;right:0;z-index:10;
+}
+.logo{font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.3px;}
+.date-str{font-size:12px;color:var(--muted);}
+
+/* TAB BAR */
+.tab-bar{
+  height:48px;background:#fff;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:stretch;
+  position:fixed;top:56px;left:0;right:0;z-index:9;
+  padding:0 24px;gap:0;
+}
+.tab-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:0 20px;
+  border:none;background:none;cursor:pointer;
+  font-size:14px;font-weight:400;color:var(--muted);
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+  transition:color .15s;
+  font-family:inherit;
+  position:relative;top:1px;
+}
+.tab-btn:hover{color:var(--blue);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600;}
+
+/* SUB TAB BAR */
+.sub-bar{
+  display:none;height:44px;background:#f8f8f8;
+  border-bottom:1px solid var(--border);
+  position:fixed;top:104px;left:0;right:0;z-index:8;
+  align-items:center;padding:0 32px;gap:8px;
+}
+.sub-bar.show{display:flex;}
+.sub-btn{
+  padding:6px 18px;border-radius:2px;
+  border:1px solid var(--border);background:#fff;
+  font-size:13px;color:var(--muted);
+  cursor:pointer;font-family:inherit;
+  transition:all .15s;
+}
+.sub-btn:hover{color:var(--blue);border-color:var(--blue);}
+.sub-btn.active{color:var(--blue);border-color:var(--blue);font-weight:600;}
+
+/* IFRAME */
+.frame-wrap{position:fixed;top:104px;left:0;right:0;bottom:0;background:#fff;}
+.frame-wrap.has-sub{top:148px;}
+.module-frame{display:none;width:100%;height:100%;border:none;}
+.module-frame.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="logo">Quản lý lớp học</div>
+  <div class="date-str" id="dateStr"></div>
+</div>
+
+<!--
+  DANH SÁCH TAB CỐ ĐỊNH — "khai sinh trước".
+  Tên file đã chốt, KHÔNG đổi lại sau này. Module nào chưa có file .html
+  tương ứng sẽ hiện lỗi "không tìm thấy" trong khung — bình thường, cứ
+  tạo đúng tên file rồi push lên Git là tab đó tự chạy, không cần sửa
+  lại file index.html này nữa.
+-->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('quanly',this)">Quản lý chung</button>
+  <button class="tab-btn" onclick="switchTab('diemdanh',this)">Điểm danh</button>
+  <button class="tab-btn" onclick="switchTab('tuvung',this)">Từ vựng</button>
+  <button class="tab-btn" onclick="switchTab('btvn',this)">BTVN</button>
+  <button class="tab-btn" onclick="switchTab('taohocphan',this)">Tạo học phần</button>
+</div>
+
+<div class="sub-bar" id="subBar">
+  <button class="sub-btn active" onclick="switchSub('dich',this)">Luyện dịch</button>
+  <button class="sub-btn" onclick="switchSub('nghe',this)">Luyện nghe</button>
+</div>
+
+<div class="frame-wrap" id="frameWrap">
+  <iframe id="frame-quanly"     src="quanly.html" class="module-frame active"></iframe>
+  <iframe id="frame-diemdanh"   class="module-frame"></iframe>
+  <iframe id="frame-tuvung"     class="module-frame"></iframe>
+  <iframe id="frame-btvn"       class="module-frame"></iframe>
+  <iframe id="frame-dich"       class="module-frame"></iframe>
+  <iframe id="frame-nghe"       class="module-frame"></iframe>
+</div>
+
+<script>
+document.getElementById('dateStr').textContent =
+  new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+// Tab cấp 1 -> file .html tương ứng (tab không có sub-bar)
+const FILES={
+  diemdanh:'diemdanh.html',
+  tuvung:'tuvung-dotrenlop.html',
+  btvn:'btvn.html'
+};
+// Tab "Tạo học phần" có sub-bar riêng -> file .html tương ứng từng sub-tab
+const SUB_FILES={
+  dich:'taohocphan-dich.html',
+  nghe:'taohocphan-nghe.html'
+};
+
+const loaded={quanly:true};
+let curSub='dich';
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-bar > .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const sub=document.getElementById('subBar'),wrap=document.getElementById('frameWrap');
+
+  if(name==='taohocphan'){
+    sub.classList.add('show');wrap.classList.add('has-sub');
+    showFrame('frame-'+curSub,curSub,SUB_FILES);
+    return;
+  }
+  sub.classList.remove('show');wrap.classList.remove('has-sub');
+  showFrame('frame-'+name,name,FILES);
+}
+
+function switchSub(name,btn){
+  curSub=name;
+  document.querySelectorAll('.sub-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  showFrame('frame-'+name,name,SUB_FILES);
+}
+
+function showFrame(id,key,map){
+  document.querySelectorAll('.module-frame').forEach(f=>f.classList.remove('active'));
+  const f=document.getElementById(id);
+  if(!loaded[key]&&map[key]){f.src=map[key];loaded[key]=true;}
+  f.classList.add('active');
+}
+</script>
+</body>
+</html>
