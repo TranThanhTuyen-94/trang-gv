@@ -51,6 +51,12 @@
     background:#fff;
     color:var(--ink);
   }
+  input[type=date]{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;
+    font-size:15px;background:#fff;color:var(--ink);
+  }
+  .row-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;}
+  .row-2col > div{min-width:0;}
   .lesson-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
@@ -129,18 +135,33 @@
     <p class="sub">Chọn sách, bài và lớp để bắt đầu buổi dò.</p>
 
     <div class="card">
-      <label>Sách</label>
-      <select id="bookSelect"></select>
+      <div class="row-2col">
+        <div>
+          <label>Ngày học</label>
+          <input type="date" id="ngayHocInput">
+        </div>
+        <div>
+          <label>Sách</label>
+          <select id="bookSelect"></select>
+        </div>
+      </div>
 
       <label>Bài (chọn các bài muốn dò)</label>
       <button class="btn btn-secondary" style="margin-bottom:8px" onclick="loadLessons()">Tải bài học</button>
       <div id="lessonGrid" class="lesson-grid"><span class="sub">Bấm "Tải bài học" để xem danh sách bài…</span></div>
 
-      <label>Lớp</label>
-      <select id="lopInput">
-        <option value="">— Chọn lớp —</option>
-      </select>
-      <button class="btn btn-secondary" style="margin-top:8px" onclick="loadStudents()">Tải học viên</button>
+      <div class="row-2col">
+        <div>
+          <label>Lớp</label>
+          <select id="lopInput">
+            <option value="">— Chọn lớp —</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="btn btn-secondary" onclick="loadStudents()">Tải học viên</button>
+        </div>
+      </div>
 
       <div id="studentArea" class="hidden">
         <label>Học viên có mặt hôm nay (bỏ tick nếu vắng)</label>
@@ -151,8 +172,6 @@
     </div>
 
     <div class="card">
-      <label style="display:block;font-size:13px;color:#555;margin-bottom:6px">Ngày học (áp dụng cho link)</label>
-      <input type="date" id="linkDateInput" style="margin-bottom:12px">
       <button class="btn btn-secondary" onclick="taoLinkDoBai()">🔗 Tạo link dò bài tại nhà</button>
       <div id="linkResultBox" class="hidden" style="margin-top:12px">
         <label>Link — bấm vào ô để copy</label>
@@ -236,7 +255,7 @@ async function apiPost(body){
 // ----- BƯỚC 1: SETUP -----
 async function init(){
   try{
-    document.getElementById('linkDateInput').value = new Date().toISOString().slice(0,10);
+    document.getElementById('ngayHocInput').value = new Date().toISOString().slice(0,10);
 
     const books = await apiGet('getBooks');
     const sel = document.getElementById('bookSelect');
@@ -300,7 +319,7 @@ function taoLinkDoBai(){
   const lop = document.getElementById('lopInput').value;
   const book = document.getElementById('bookSelect').value;
   const lessons = Array.from(document.querySelectorAll('#lessonGrid input:checked')).map(i=>i.value);
-  const dateVal = document.getElementById('linkDateInput').value; // yyyy-mm-dd
+  const dateVal = document.getElementById('ngayHocInput').value; // yyyy-mm-dd
   if(!lop || !book || lessons.length===0){
     showToast('Chọn Lớp + Sách + ít nhất 1 Bài trước khi tạo link');
     return;
@@ -446,7 +465,13 @@ function finishQuiz(){
 async function saveToSheet(){
   const btn = document.getElementById('saveBtn');
   btn.disabled = true; btn.textContent = 'Đang lưu…';
-  const today = new Date().toLocaleDateString('vi-VN');
+  // Dùng đúng ngày GV đã chọn ở màn thiết lập (không tự lấy "hôm nay" nữa) —
+  // để khớp với đúng ngày dùng để tạo link dò bài tại nhà, và để GV có thể ghi
+  // bù kết quả cho đúng ngày đã dạy nếu lỡ lưu trễ.
+  const dateVal = document.getElementById('ngayHocInput').value;
+  const today = dateVal
+    ? new Date(dateVal + 'T00:00:00').toLocaleDateString('vi-VN')
+    : new Date().toLocaleDateString('vi-VN');
   const rows = Object.entries(stats).map(([maHV,s])=>{
     const pct = s.asked ? Math.round((s.correct/s.asked)*100) : 0;
     return {
